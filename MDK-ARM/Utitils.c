@@ -2,7 +2,9 @@
 
 uint8_t PWM_duty(uint8_t value, uint8_t max)
 {	
-	return value = 8399-value*8399/max;	
+	int result;
+	result = value*8399/10000;	
+	return result;
 }
 
 char* stringcat(char *dich, const char *nguon)

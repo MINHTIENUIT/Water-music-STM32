@@ -111,6 +111,8 @@ float32_t output[1024];
 float32_t maxValue;
 uint32_t testIndex;
 float32_t input[2048];
+float32_t dutys[8];
+		int temp;		
 
 /* Variable used by FatFs*/
 FIL FileRead;
@@ -124,6 +126,7 @@ extern uint32_t WaveRecStatus;
 /* Defined in main.c */
 extern MSC_ApplicationTypeDef AppliState;
 
+
 /* Private function prototypes -----------------------------------------------*/
 
 /* Private functions ---------------------------------------------------------*/
@@ -132,48 +135,43 @@ void FFT(void){
 	arm_status status;
 
 	for (int i = 0; i < SAMPLES; i++){
-		input[i] = (float)Audio_Buffer[i] - (float)0x80;
+		input[i] = (float)Audio_Buffer[i];
 	}
 	status = arm_cfft_radix4_init_f32(&s_CFFT,FFT_SIZE,ifftFlag,doBitReverse);
 	if (status == ARM_MATH_SUCCESS){
 		arm_cfft_radix4_f32(&s_CFFT,input);
 		arm_cmplx_mag_f32(input,output,FFT_SIZE);
-		arm_max_f32(output,1024,&maxValue,&testIndex);
 		
-		uint8_t dutys[8]={PWM_duty(output[0],maxValue),
-			PWM_duty(output[1],maxValue),
-			PWM_duty(output[2],maxValue),
-			PWM_duty(output[3],maxValue),
-			PWM_duty(output[4],maxValue),
-			PWM_duty(output[5],maxValue),
-			PWM_duty(output[6],maxValue),
-			PWM_duty(output[7],maxValue)};
-				
+		for (int i = 0; i< 8;i++){
+			dutys[i] = output[(i+1)*10];
+		}
+		
+		arm_max_f32(dutys,8,&maxValue,&testIndex);
+		
 		//PB4
-		__HAL_TIM_SET_COMPARE(&htim3,TIM_CHANNEL_1,dutys[0]);
+		__HAL_TIM_SET_COMPARE(&htim3,TIM_CHANNEL_1,PWM_duty(dutys[0],maxValue));
 			
 		//PB5
-		__HAL_TIM_SET_COMPARE(&htim3,TIM_CHANNEL_2,dutys[1]);
+		__HAL_TIM_SET_COMPARE(&htim3,TIM_CHANNEL_2,PWM_duty(dutys[1],maxValue));
 			
 		//PB0
-		__HAL_TIM_SET_COMPARE(&htim3,TIM_CHANNEL_3,dutys[2]);
+		__HAL_TIM_SET_COMPARE(&htim3,TIM_CHANNEL_3,PWM_duty(dutys[2],maxValue));
 			
 		//PB1
-		__HAL_TIM_SET_COMPARE(&htim3,TIM_CHANNEL_4,dutys[3]);
+		__HAL_TIM_SET_COMPARE(&htim3,TIM_CHANNEL_4,PWM_duty(dutys[3],maxValue));
 		
 		//PA15
-		__HAL_TIM_SET_COMPARE(&htim2,TIM_CHANNEL_1,dutys[4]);
+		__HAL_TIM_SET_COMPARE(&htim2,TIM_CHANNEL_1,PWM_duty(dutys[4],maxValue));
 		
 		//PA1
-		__HAL_TIM_SET_COMPARE(&htim2,TIM_CHANNEL_2,dutys[5]);
+		__HAL_TIM_SET_COMPARE(&htim2,TIM_CHANNEL_2,PWM_duty(dutys[5],maxValue));
 
 		//PA2
-		__HAL_TIM_SET_COMPARE(&htim2,TIM_CHANNEL_3,dutys[6]);
+		__HAL_TIM_SET_COMPARE(&htim2,TIM_CHANNEL_3,PWM_duty(dutys[6],maxValue));
 
 		//PA3
-		__HAL_TIM_SET_COMPARE(&htim2,TIM_CHANNEL_4,dutys[7]);
-
-		//HAL_UART_Transmit_DMA(&huart6,(uint8_t *)dutys,8);				
+		__HAL_TIM_SET_COMPARE(&htim2,TIM_CHANNEL_4,PWM_duty(dutys[7],maxValue));
+				
 	}else {
 		Error_Handler();
 	}
@@ -248,8 +246,7 @@ void WavePlayBack(uint32_t AudioFreq)
         f_read(&FileRead, 
                &Audio_Buffer[0], 
                AUDIO_BUFFER_SIZE/2, 
-               (void *)&bytesread); 
-          FFT();
+               (void *)&bytesread);           
           buffer_offset = BUFFER_OFFSET_NONE;
       }
       
